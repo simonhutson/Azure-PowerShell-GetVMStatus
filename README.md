@@ -1,4 +1,4 @@
-Make sure you have the correct versions of PowerShell 5.x installed, by running this command:
+Make sure you have the correct version of PowerShell 5.x installed, by running this command:
 
     $PSVersionTable.PSVersion
 
