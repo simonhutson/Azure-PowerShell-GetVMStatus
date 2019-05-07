@@ -1,4 +1,4 @@
-# Azure-PowerShell-GetVMStatus
+# Pre-requisites
 
 Make sure you have the correct version of PowerShell 5.x installed, by running this command:
 
