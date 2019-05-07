@@ -18,6 +18,7 @@ Set-ExecutionPolicy -Scope "CurrentUser" -ExecutionPolicy "Bypass" -ErrorAction 
     
 - [Find-PackageProvider](https://docs.microsoft.com/powershell/module/packagemanagement/find-packageprovider) returns a list of Package Management package providers available for installation.
 - [Install-PackageProvider](https://docs.microsoft.com/powershell/module/packagemanagement/install-packageprovider) Installs one or more Package Management package providers.
+- [Install-Module](https://docs.microsoft.com/powershell/module/powershellget/install-module) downloads one or more modules from a repository, and installs them on the local computer.
 - [PowerShellGet](https://docs.microsoft.com/powershell/module/powershellget) is a module with commands for discovering, installing, updating and publishing PowerShell artifacts like Modules, DSC Resources, Role Capabilities, and Scripts.
 - [Set-PSRepository](https://docs.microsoft.com/powershell/module/powershellget/set-psrepository) sets values for a registered repository.
 - [Set-ExecutionPolicy](https://docs.microsoft.com/powershell/module/microsoft.powershell.security/set-executionpolicy) sets the PowerShell execution policies for Windows computers.
