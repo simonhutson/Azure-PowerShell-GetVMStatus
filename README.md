@@ -11,7 +11,7 @@ If the AZ PowerShell module is not installed, then you can run these PowerShell 
     [Install-PackageProvider](https://docs.microsoft.com/powershell/module/packagemanagement/install-packageprovider) Installs one or more Package Management package providers.
     Find-PackageProvider -Name "Nuget" -Force -Verbose | Install-PackageProvider -Scope "CurrentUser" -Force -Confirm -Verbose
     
-### Install latest PowerShellGet module contains cmdlets for discovering, installing, updating and publishing PowerShell packages
+### Install latest PowerShellGet module
     The PowerShellGet module contains cmdlets for discovering, installing, updating and publishing PowerShell packages
     [PowerShellGet](https://docs.microsoft.com/powershell/module/powershellget) is a module with commands for discovering, installing, updating and publishing PowerShell artifacts like Modules, DSC Resources, Role Capabilities, and Scripts.
     Install-Module –Name "PowerShellGet" -Repository "PSGallery" -Scope "CurrentUser" -AcceptLicense -SkipPublisherCheck –Force -Confirm -AllowClobber -Verbose
