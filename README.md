@@ -8,7 +8,7 @@ $PSVersionTable.PSVersion
 
 If the AZ PowerShell module is not installed, then you can run these PowerShell commands in an eleveated shell:
 
-```markdown
+```powershell
 Find-PackageProvider -Name "Nuget" -Force -Verbose | Install-PackageProvider -Scope "CurrentUser" -Force -Confirm -Verbose
 Install-Module –Name "PowerShellGet" -Repository "PSGallery" -Scope "CurrentUser" -AcceptLicense -SkipPublisherCheck –Force -Confirm -AllowClobber -Verbose
 Set-PSRepository -Name "PSGallery" -InstallationPolicy "Trusted" -PackageManagementProvider "Nuget" -Verbose
