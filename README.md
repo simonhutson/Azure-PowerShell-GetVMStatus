@@ -2,7 +2,9 @@
 
 Make sure you have the correct version of PowerShell 5.x installed, by running this command:
 
-    $PSVersionTable.PSVersion
+```markdown
+$PSVersionTable.PSVersion
+```
 
 If the AZ PowerShell module is not installed, then you can run these PowerShell commands in an eleveated shell:
 
