@@ -85,16 +85,55 @@ else # User has access to no Azure Subscription
 
 #endregion
 
+#region Get VM Sizes
+
+$VMSizes = @()
+Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure VM Sizes across all locations"
+
+# Get list of Azure Locations associated with this Subscription, for which this User has access and that support VMs
+$Locations = Get-AzLocation | Where-Object { $_.Providers -eq "Microsoft.Compute" }
+
+# Loop through each Azure Location to retrieve a complete list of VM Sizes
+foreach ($Location in $Locations)
+{
+    try
+    {
+        $VMSizes += Get-AzVMSize -Location $($Location.Location) | Select-Object Name, NumberOfCores, MemoryInMB, MaxDataDiskCount
+        Write-Host -NoNewline "."
+    }
+    catch
+    {
+        #Do Nothing
+    }
+}
+$VMSizes = $VMSizes | Select-Object -Unique Name, NumberOfCores, MemoryInMB, MaxDataDiskCount
+Write-Host
+
+#endregion
+
 #region Get ARM VM Details
+
+Import-Module C:\Users\simonhu\Desktop\Join-Object.ps1
 
 # Loop through each Subscription
 foreach ($Subscription in $SelectedSubscriptions)
 {
+    # Set the current Azure context
+    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Setting context for Subscription: $($Subscription.Name)"
+    $null = Set-AzContext -SubscriptionId $Subscription -TenantId $Account.Context.Tenant.Id
+    Write-Host
+
+    # Get the status of all the ARM VMs in the current Subscription
+    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving status of ARM Virtual Machines in Subscription: $($Subscription.Name)"
+    $VMStatuses = Get-AzVM -Status
+    Write-Host
+
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of ARM Virtual Machines in Subscription: $($Subscription.Name)"
     $VMObjects = Search-AzGraph -Subscription $Subscription.Id -First 5000 -Query "
     where type =~ 'microsoft.compute/virtualmachines'
     | order by id asc
     | project
+    ResourceId = id,
     Subscription = '$($Subscription.name)',
     ResourceGroup = toupper(resourceGroup),
     VMName = toupper(name),
@@ -124,14 +163,18 @@ foreach ($Subscription in $SelectedSubscriptions)
     "
     Write-Host
 
-    # Output to a CSV file on the user's Desktop
-    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Appending details of ARM Virtual Machines to file."
-    $FilePath = "$env:HOMEDRIVE$env:HOMEPATH\Desktop\Azure Resource Graph VM Status $($DateTime).csv"
-    if ($VMObjects)
-    {
-        $VMObjects | Export-Csv -Path $FilePath -Append -NoTypeInformation
-    }
-    Write-Host
+    # $VMJoin1 = Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, StatusCode, MaitenanceRedeployStatus
+
+    $VMs = Join-Object -Left (Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, StatusCode, MaitenanceRedeployStatus) -Right $VMSizes -LeftJoinProperty VMSize -RightJoinProperty Name -Type AllInLeft -RightProperties NumberOfCores, MemoryInMB, MaxDataDiskCount
+
+    # # Output to a CSV file on the user's Desktop
+    # Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Appending details of ARM Virtual Machines to file."
+    # $FilePath = "$env:HOMEDRIVE$env:HOMEPATH\Desktop\Azure Resource Graph VM Status $($DateTime).csv"
+    # if ($VMObjects)
+    # {
+    #     $VMObjects | Export-Csv -Path $FilePath -Append -NoTypeInformation
+    # }
+    # Write-Host
 }
 #endregion
 
