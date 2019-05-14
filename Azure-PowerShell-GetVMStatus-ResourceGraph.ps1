@@ -19,6 +19,14 @@ If the AZ PowerShell module is not installed, then you can run these PowerShell 
 
 #>
 
+#region imports
+
+Import-Module .\Get-ReservedVMInstances.ps1
+Import-Module .\Join-Object.ps1
+
+#endregion
+
+
 $ErrorActionPreference = 'Stop'
 $DateTime = Get-Date -f 'yyyy-MM-dd HHmmss'
 
@@ -26,12 +34,13 @@ $DateTime = Get-Date -f 'yyyy-MM-dd HHmmss'
 
 # Login to the user's default Azure AD Tenant
 Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Login to User's default Azure AD Tenant"
-$Account = Login-AzureRmAccount
+$Account = Login-AzAccount
+Login
 Write-Host
 
 # Get the list of Azure AD Tenants this user has access to, and select the correct one
 Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure AD Tenants for this User"
-$Tenants = @(Get-AzureRmTenant)
+$Tenants = @(Get-AzTenant)
 Write-Host
 
 # Get the list of Azure AD Tenants this user has access to, and select the correct one
@@ -48,18 +57,20 @@ else # User has access to no Azure AD Tenant
     Return
 }
 
-# Get Authentication Token, just in case it is required in future
-$TokenCache = (Get-AzureRmContext).TokenCache
-$Token = $TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $Tenant.Id }
-
 # Check if the current Azure AD Tenant is the required Tenant
 if ($Account.Context.Tenant.Id -ne $Tenant.Id)
 {
     # Login to the required Azure AD Tenant
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Login to correct Azure AD Tenant"
-    $Account = Add-AzureRmAccount -TenantId $Tenant.Id
+    $Account = Add-AzAccount -TenantId $Tenant.Id
     Write-Host
 }
+
+# Get Authentication Access Token, for use with the Azure REST API
+$TokenCache = (Get-AzContext).TokenCache
+$Token = $TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $Tenant.Id -and $_.DisplayableId -eq $Account.Context.Account.Id -and $_.Resource -eq "https://management.core.windows.net/" }
+$AccessToken = "Bearer " + $Token.AccessToken
+
 
 #endregion
 
@@ -113,7 +124,10 @@ Write-Host
 
 #region Get ARM VM Details
 
-Import-Module C:\Users\simonhu\Desktop\Join-Object.ps1
+# Get the list of all the Reserved VM Instances
+Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Reservered Virtual Machine Instances"
+$ReservedVMInstances = Get-ReservedVMInstances
+Write-Host
 
 # Loop through each Subscription
 foreach ($Subscription in $SelectedSubscriptions)
@@ -128,13 +142,18 @@ foreach ($Subscription in $SelectedSubscriptions)
     $VMStatuses = Get-AzVM -Status
     Write-Host
 
+    # Get the created & last updated date/time of all the ARM VMs in the current Subscription by calling the Azure REST API
+    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving created & last updated date/time of ARM Virtual Machines in Subscription: $($Subscription.Name)"
+    $Headers = @{"Content-Type" = "application\json"; "Authorization" = "$AccessToken" }
+    $VMRestProperties = Invoke-RestMethod -Method "Get" -Headers $Headers -Uri "https://management.azure.com/subscriptions/$($Subscription.Id)/resources?`$filter=resourcetype eq 'Microsoft.Compute/virtualMachines'&`$expand=createdTime,changedTime&api-version=2018-08-01" | Select-Object -ExpandProperty value
+    Write-Host
+
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of ARM Virtual Machines in Subscription: $($Subscription.Name)"
     $VMObjects = Search-AzGraph -Subscription $Subscription.Id -First 5000 -Query "
     where type =~ 'microsoft.compute/virtualmachines'
     | order by id asc
     | project
     ResourceId = id,
-    Subscription = '$($Subscription.name)',
     ResourceGroup = toupper(resourceGroup),
     VMName = toupper(name),
     VMLocation = location,
@@ -163,18 +182,63 @@ foreach ($Subscription in $SelectedSubscriptions)
     "
     Write-Host
 
-    # $VMJoin1 = Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, StatusCode, MaitenanceRedeployStatus
+    if ($VMObjects)
+    {
+        $VMObjects = Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, ProvisioningState, StatusCode, MaitenanceRedeployStatus
 
-    $VMs = Join-Object -Left (Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, StatusCode, MaitenanceRedeployStatus) -Right $VMSizes -LeftJoinProperty VMSize -RightJoinProperty Name -Type AllInLeft -RightProperties NumberOfCores, MemoryInMB, MaxDataDiskCount
+        $VMObjects = Join-Object -Left $VMObjects -Right $VMSizes -LeftJoinProperty VMSize -RightJoinProperty Name -Type AllInLeft -RightProperties NumberOfCores, MemoryInMB, MaxDataDiskCount
 
-    # # Output to a CSV file on the user's Desktop
-    # Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Appending details of ARM Virtual Machines to file."
-    # $FilePath = "$env:HOMEDRIVE$env:HOMEPATH\Desktop\Azure Resource Graph VM Status $($DateTime).csv"
-    # if ($VMObjects)
-    # {
-    #     $VMObjects | Export-Csv -Path $FilePath -Append -NoTypeInformation
-    # }
-    # Write-Host
+        $VMObjects = Join-Object -Left $VMObjects -Right $ReservedVMInstances -LeftJoinProperty VMSize -RightJoinProperty VMSize -Type AllInLeft -RightProperties ReservedInstanceFamily, ReservedInstanceRatio
+
+        $VMObjects = Join-Object -Left $VMObjects -Right $VMRestProperties -LeftJoinProperty ResourceId -RightJoinProperty id -Type AllInLeft -RightProperties createdTime, changedTime
+
+        $OrderedVMObjects = $VMObjects `
+        | Select-Object -Property `
+        @{label = "Created On"; expression = { if ($_.createdTime) { $([DateTime]::Parse($_.createdTime)).ToUniversalTime() } } }, `
+        @{label = "Modified On"; expression = { if ($_.changedTime) { $([DateTime]::Parse($_.createdTime)).ToUniversalTime() } } }, `
+        @{label = "Subscription"; expression = { $($Subscription.name) } }, `
+        @{label = "Resource Group"; expression = { $_.ResourceGroup } }, `
+        @{label = "VM Name"; expression = { $_.VMName } }, `
+        @{label = "VM Location"; expression = { $_.VMLocation } }, `
+        @{label = "VM Size"; expression = { $_.VMSize } }, `
+        @{label = "VM Processor Cores"; expression = { $_.NumberOfCores } }, `
+        @{label = "VM Memory (GB)"; expression = { $([Math]::Round([INT]$_.MemoryInMB / 1024)) } }, `
+        @{label = "VM Reserved Instance Family"; expression = { $_.ReservedInstanceFamily } }, `
+        @{label = "VM Reserved Instance Ratio"; expression = { $_.ReservedInstanceRatio } }, `
+        @{label = "Availability Set"; expression = { $_.AvailabilitySet } }, `
+        @{label = "Power State"; expression = { $_.PowerState } }, `
+        @{label = "Provisioning State"; expression = { $_.ProvisioningState } }, `
+        @{label = "Status Code"; expression = { $_.StatusCode } }, `
+        @{label = "Maintenance - Self Service Window"; expression = { if ($_.MaintenanceRedeployStatus.IsCustomerInitiatedMaintenanceAllowed) { $($_.MaintenanceRedeployStatus.PreMaintenanceWindowStartTime).ToUniversalTime().ToString() + " - " + $($_.MaintenanceRedeployStatus.PreMaintenanceWindowEndTime).ToUniversalTime().ToString() + " UTC" } } }, `
+        @{label = "Maintenance - Scheduled Window"; expression = { if ($_.MaintenanceRedeployStatus.IsCustomerInitiatedMaintenanceAllowed) { $($_.MaintenanceRedeployStatus.MaintenanceWindowStartTime).ToUniversalTime().ToString() + " - " + $($_.MaintenanceRedeployStatus.MaintenanceWindowEndTime).ToUniversalTime().ToString() + " UTC" } } }, `
+        @{label = "Boot Diagnostics Enabled"; expression = { $_.BootDiagnostcsEnabled } }, `
+        @{label = "OS Type"; expression = { $_.OSType } }, `
+        @{label = "Windows Hybrid Benefit"; expression = { $_.WindowsHybridBenefit } }, `
+        @{label = "Image Publisher"; expression = { $_.ImagePublisher } }, `
+        @{label = "Image Offer"; expression = { $_.ImageOffer } }, `
+        @{label = "Image Sku"; expression = { $_.ImageSku } }, `
+        @{label = "Image Version"; expression = { $_.ImageVersion } }, `
+        @{label = "OS Disk Size"; expression = { $_.OSDiskSize } }, `
+        @{label = "OS Disk Caching"; expression = { $_.OSDiskCaching } }, `
+        @{label = "OS Disk Type"; expression = { $_.OSDiskType } }, `
+        @{label = "OS Disk Storage Type"; expression = { $_.OSDiskStorageType } }, `
+        @{label = "OS Disk Storage Account"; expression = { $_.OSDiskStorageAccount } }, `
+        @{label = "Data Disk Count"; expression = { $_.DataDiskCount } }, `
+        @{label = "Data Disk Max Count"; expression = { $_.MaxDataDiskCount } }, `
+        @{label = "Network Interface 0"; expression = { $_.NetworkInterface0 } }, `
+        @{label = "Network Interface 1"; expression = { $_.NetworkInterface1 } }, `
+        @{label = "Network Interface 2"; expression = { $_.NetworkInterface2 } }, `
+        @{label = "Network Interface 3"; expression = { $_.NetworkInterface3 } }
+
+        # Output to a CSV file on the user's Desktop
+        Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Appending details of ARM Virtual Machines to file."
+        $FilePath = "$env:HOMEDRIVE$env:HOMEPATH\Desktop\Azure Resource Graph VM Status $($DateTime).csv"
+        if ($OrderedVMObjects)
+        {
+            $OrderedVMObjects | Export-Csv -Path $FilePath -Append -NoTypeInformation
+        }
+        Write-Host
+    }
 }
 #endregion
 
