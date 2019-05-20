@@ -18,46 +18,13 @@ If the AZ PowerShell module is not installed, then you can run these PowerShell 
 
 #>
 
-#region Function Get-ChildObject
+# Import Modules
+Import-Module .\Modules\Login-Azure.ps1
+Import-Module .\Modules\Get-ReservedVMInstances.ps1
+Import-Module .\Modules\Get-ChildObject.ps1
+Import-Module .\Modules\Get-ClassicVMSizes.ps1
 
-Function Get-ChildObject
-{
-    param(
-        [System.Object]$Object,
-        [string]$Path
-    )
-    process
-    {
-        $ReturnValue = ""
-        if ($Object -and $Path)
-        {
-            $EvaluationExpression = '$Object'
-
-            foreach ($Token in $Path.Split("."))
-            {
-                If ($Token)
-                {
-                    $EvaluationExpression += '.' + $Token
-                    if ($null -ne (Invoke-Expression $EvaluationExpression))
-                    {
-                        $ReturnValue = Invoke-Expression $EvaluationExpression
-                    }
-                    else
-                    {
-                        $ReturnValue = ""
-                    }
-                }
-            }
-        }
-        Write-Output -InputObject $ReturnValue
-    }
-}
-
-#endregion
-
-
-#region Check PowerShell Version
-
+# Check PowerShell Version
 $PowerShellVersion = $PSVersionTable.PSVersion
 if ($PowerShellVersion.Major -ne 5)
 {
@@ -65,62 +32,21 @@ if ($PowerShellVersion.Major -ne 5)
     Exit
 }
 
-#endregion
-
-#region Set Globals
-
+# Set Globals
 $ErrorActionPreference = 'Stop'
 $DateTime = Get-Date -f 'yyyy-MM-dd HHmmss'
 
-#endregion
-
-#region Login
-
-# Login to the user's default Azure AD Tenant
-Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Login to User's default Azure AD Tenant"
-$Account = Connect-AzAccount
-Write-Host
-
-# Get the list of Azure AD Tenants this user has access to, and select the correct one
-Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure AD Tenants for this User"
-$Tenants = @(Get-AzTenant)
-Write-Host
-
-# Get the list of Azure AD Tenants this user has access to, and select the correct one
-if ($Tenants.Count -gt 1) # User has access to more than one Azure AD Tenant
-{
-    $Tenant = $Tenants | Out-GridView -Title "Select the Azure AD Tenant you wish to use..." -OutputMode Single
-}
-elseif ($Tenants.Count -eq 1) # User has access to only one Azure AD Tenant
-{
-    $Tenant = $Tenants.Item(0)
-}
-else # User has access to no Azure AD Tenant
-{
-    Return
-}
-
-# Check if the current Azure AD Tenant is the required Tenant
-if ($Account.Context.Tenant.Id -ne $Tenant.Id)
-{
-    # Login to the required Azure AD Tenant
-    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Login to correct Azure AD Tenant"
-    $Account = Connect-AzAccount -Tenant $Tenant.Id
-    Write-Host
-}
+# Call Login-Azure module
+$Account = Login-Azure
 
 # Get Authentication Access Token, for use with the Azure REST API
 $TokenCache = (Get-AzContext).TokenCache
-$Token = $TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $Tenant.Id -and $_.DisplayableId -eq $Account.Context.Account.Id -and $_.Resource -eq "https://management.core.windows.net/" }
+$Token = $TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $Account.Context.Tenant.Id -and $_.DisplayableId -eq $Account.Context.Account.Id -and $_.Resource -eq "https://management.core.windows.net/" }
 $AccessToken = "Bearer " + $Token.AccessToken
-
-#endregion
-
-#region Select subscription(s)
 
 # Get list of Subscriptions associated with this Azure AD Tenant, for which this User has access
 Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure Subscriptions for this Azure AD Tenant"
-$AllSubscriptions = @(Get-AzSubscription -TenantId $Tenant.Id)
+$AllSubscriptions = @(Get-AzSubscription -TenantId $Account.Context.Tenant.Id)
 Write-Host
 
 if ($AllSubscriptions.Count -gt 1) # User has access to more than one Azure Subscription
@@ -136,10 +62,7 @@ else # User has access to no Azure Subscription
     Return
 }
 
-#endregion
-
-#region Get VM Sizes
-
+# Get VM Sizes
 $VMSizes = @()
 Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure VM Sizes across all locations"
 
@@ -162,48 +85,11 @@ foreach ($Location in $Locations)
 $VMSizes = $VMSizes | Select-Object -Unique Name, NumberOfCores, MemoryInMB, MaxDataDiskCount
 Write-Host
 
-# For some reason, Azure doesn't report these VM sizes, so we need to create them manually
-$ExtraSmall = ($VMSizes | Where-Object { $_.Name -eq "Basic_A0" } | Get-Unique).PSObject.Copy()
-$ExtraSmall.Name = "ExtraSmall"
-$VMSizes += $ExtraSmall
-$Small = ($VMSizes | Where-Object { $_.Name -eq "Basic_A1" } | Get-Unique).PSObject.Copy()
-$Small.Name = "Small"
-$VMSizes += $Small
-$Medium = ($VMSizes | Where-Object { $_.Name -eq "Basic_A2" } | Get-Unique).PSObject.Copy()
-$Medium.Name = "Medium"
-$VMSizes += $Medium
-$Large = ($VMSizes | Where-Object { $_.Name -eq "Basic_A3" } | Get-Unique).PSObject.Copy()
-$Large.Name = "Large"
-$VMSizes += $Large
-$ExtraLarge = ($VMSizes | Where-Object { $_.Name -eq "Basic_A4" } | Get-Unique).PSObject.Copy()
-$ExtraLarge.Name = "ExtraLarge"
-$VMSizes += $ExtraLarge
-$A5 = ($VMSizes | Where-Object { $_.Name -eq "Standard_A5" } | Get-Unique).PSObject.Copy()
-$A5.Name = "A5"
-$VMSizes += $A5
-$A6 = ($VMSizes | Where-Object { $_.Name -eq "Standard_A6" } | Get-Unique).PSObject.Copy()
-$A6.Name = "A6"
-$VMSizes += $A6
-$A7 = ($VMSizes | Where-Object { $_.Name -eq "Standard_A7" } | Get-Unique).PSObject.Copy()
-$A7.Name = "A7"
-$VMSizes += $A7
-$A8 = ($VMSizes | Where-Object { $_.Name -eq "Standard_A8" } | Get-Unique).PSObject.Copy()
-$A8.Name = "A8"
-$VMSizes += $A8
-$A9 = ($VMSizes | Where-Object { $_.Name -eq "Standard_A9" } | Get-Unique).PSObject.Copy()
-$A9.Name = "A9"
-$VMSizes += $A9
-$A10 = ($VMSizes | Where-Object { $_.Name -eq "Standard_A10" } | Get-Unique).PSObject.Copy()
-$A10.Name = "A10"
-$VMSizes += $A10
-$A11 = ($VMSizes | Where-Object { $_.Name -eq "Standard_A11" } | Get-Unique).PSObject.Copy()
-$A11.Name = "A11"
-$VMSizes += $A11
+# Call Login-Azure module
+$ClassicVMSizes = Get-ClassicVMSizes
 
-$VMSizes = $VMSizes | Select-Object -Unique Name, NumberOfCores, MemoryInMB, MaxDataDiskCount
+$VMSizes += $ClassicVMSizes | Select-Object -Unique Name, NumberOfCores, MemoryInMB, MaxDataDiskCount
 Write-Host
-
-#endregion
 
 #region Get All Tags
 
@@ -212,7 +98,7 @@ Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of
 $Tags = @()
 foreach ($Subscription in $AllSubscriptions)
 {
-    $Context = Set-AzContext -SubscriptionId $Subscription -TenantId $Account.Context.Tenant.Id
+    $null = Set-AzContext -SubscriptionId $Subscription -TenantId $Account.Context.Tenant.Id
     $Tags += Get-AzTag
     Write-Host -NoNewline "."
 }
@@ -223,11 +109,8 @@ Write-Host
 
 #region Get ARM VM Details
 
-# Get the list of all the Reserved VM Instances
-Import-Module .\Get-ReservedVMInstances.ps1
-Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Reservered Virtual Machine Instances"
+# Call the Get-ReservedVMInstances module
 $ReservedVMInstances = Get-ReservedVMInstances
-Write-Host
 
 # Loop through each Subscription
 foreach ($Subscription in $SelectedSubscriptions)
@@ -235,7 +118,7 @@ foreach ($Subscription in $SelectedSubscriptions)
 
     # Set the current Azure context
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Setting context for Subscription: $($Subscription.Name)"
-    $Context = Set-AzContext -SubscriptionId $Subscription -TenantId $Account.Context.Tenant.Id
+    $null = Set-AzContext -SubscriptionId $Subscription -TenantId $Account.Context.Tenant.Id
     Write-Host
 
     # Get all the ARM VMs in the current Subscription
@@ -426,7 +309,7 @@ foreach ($Subscription in $SelectedSubscriptions)
 
     # Set the current Azure context
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Setting context for Subscription: $($Subscription.Name)"
-    $Context = Set-AzContext -SubscriptionId $Subscription -TenantId $Account.Context.Tenant.Id
+    $null = Set-AzContext -SubscriptionId $Subscription -TenantId $Account.Context.Tenant.Id
     Write-Host
 
     # Get all the Classic VMs in the current Subscription

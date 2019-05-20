@@ -1,4 +1,4 @@
-﻿function Get-ReservedVMInstances
+﻿function Get-ReservedVMInstanceFamilies
 {
 
     <#
@@ -191,8 +191,11 @@
         $ReservedVMInstances += [PSCustomObject]@{"VMSize" = "Standard_NV12"; "ReservedInstanceFamily" = "NV-Series"; "ReservedInstanceRatio" = "2" }
         $ReservedVMInstances += [PSCustomObject]@{"VMSize" = "Standard_NV24"; "ReservedInstanceFamily" = "NV-Series"; "ReservedInstanceRatio" = "4" }
     }
+    Process
+    {
+        Write-Output -InputObject $ReservedVMInstances
+    }
     End
     {
-        $ReservedVMInstances
     }
 }

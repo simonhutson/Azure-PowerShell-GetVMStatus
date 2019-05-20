@@ -1,4 +1,4 @@
-<#
+﻿<#
 
 .SYNOPSIS
 Retrieve the status of all Azure Virtual Machines across all Subscriptions associated with a specific Azure AD Tenant
@@ -19,66 +19,24 @@ If the AZ PowerShell module is not installed, then you can run these PowerShell 
 
 #>
 
-#region imports
-
-Import-Module .\Get-ReservedVMInstances.ps1
-Import-Module .\Join-Object.ps1
-
-#endregion
-
+Import-Module .\Modules\Login-Azure.ps1
+Import-Module .\Modules\Get-ReservedVMInstanceFamilies.ps1
+Import-Module .\Modules\Join-Object.ps1
 
 $ErrorActionPreference = 'Stop'
 $DateTime = Get-Date -f 'yyyy-MM-dd HHmmss'
 
-#region Login
-
-# Login to the user's default Azure AD Tenant
-Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Login to User's default Azure AD Tenant"
-$Account = Login-AzAccount
-Login
-Write-Host
-
-# Get the list of Azure AD Tenants this user has access to, and select the correct one
-Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure AD Tenants for this User"
-$Tenants = @(Get-AzTenant)
-Write-Host
-
-# Get the list of Azure AD Tenants this user has access to, and select the correct one
-if ($Tenants.Count -gt 1) # User has access to more than one Azure AD Tenant
-{
-    $Tenant = $Tenants | Out-GridView -Title "Select the Azure AD Tenant you wish to use..." -OutputMode Single
-}
-elseif ($Tenants.Count -eq 1) # User has access to only one Azure AD Tenant
-{
-    $Tenant = $Tenants.Item(0)
-}
-else # User has access to no Azure AD Tenant
-{
-    Return
-}
-
-# Check if the current Azure AD Tenant is the required Tenant
-if ($Account.Context.Tenant.Id -ne $Tenant.Id)
-{
-    # Login to the required Azure AD Tenant
-    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Login to correct Azure AD Tenant"
-    $Account = Add-AzAccount -TenantId $Tenant.Id
-    Write-Host
-}
+# Call Login-Azure module
+$Account = Login-Azure
 
 # Get Authentication Access Token, for use with the Azure REST API
 $TokenCache = (Get-AzContext).TokenCache
-$Token = $TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $Tenant.Id -and $_.DisplayableId -eq $Account.Context.Account.Id -and $_.Resource -eq "https://management.core.windows.net/" }
+$Token = $TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $Account.Context.Tenant.Id -and $_.DisplayableId -eq $Account.Context.Account.Id -and $_.Resource -eq "https://management.core.windows.net/" }
 $AccessToken = "Bearer " + $Token.AccessToken
-
-
-#endregion
-
-#region Select subscription(s)
 
 # Get list of Subscriptions associated with this Azure AD Tenant, for which this User has access
 Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure Subscriptions for this Azure AD Tenant"
-$AllSubscriptions = @(Get-AzSubscription -TenantId $Tenant.Id)
+$AllSubscriptions = @(Get-AzSubscription -TenantId $Account.Context.Tenant.Id)
 Write-Host
 
 if ($AllSubscriptions.Count -gt 1) # User has access to more than one Azure Subscription
@@ -94,10 +52,7 @@ else # User has access to no Azure Subscription
     Return
 }
 
-#endregion
-
-#region Get VM Sizes
-
+# Get VM Sizes
 $VMSizes = @()
 Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure VM Sizes across all locations"
 
@@ -109,7 +64,7 @@ foreach ($Location in $Locations)
 {
     try
     {
-        $VMSizes += Get-AzVMSize -Location $($Location.Location) | Select-Object Name, NumberOfCores, MemoryInMB, MaxDataDiskCount
+        $VMSizes += Get-AzVMSize -Location $($Location.Location)
         Write-Host -NoNewline "."
     }
     catch
@@ -117,17 +72,11 @@ foreach ($Location in $Locations)
         #Do Nothing
     }
 }
-$VMSizes = $VMSizes | Select-Object -Unique Name, NumberOfCores, MemoryInMB, MaxDataDiskCount
+$VMSizes = $VMSizes | Select-Object -Unique Name, NumberOfCores, MemoryInMB, MaxDataDiskCount, OSDiskSizeInMB, ResourceDiskSizeInMB
 Write-Host
 
-#endregion
-
-#region Get ARM VM Details
-
-# Get the list of all the Reserved VM Instances
-Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Reservered Virtual Machine Instances"
-$ReservedVMInstances = Get-ReservedVMInstances
-Write-Host
+# Call the Get-ReservedVMInstances module
+$ReservedVMInstances = Get-ReservedVMInstanceFamilies
 
 # Loop through each Subscription
 foreach ($Subscription in $SelectedSubscriptions)
@@ -240,6 +189,5 @@ foreach ($Subscription in $SelectedSubscriptions)
         Write-Host
     }
 }
-#endregion
 
 Write-Host
