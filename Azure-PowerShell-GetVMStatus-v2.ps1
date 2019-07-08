@@ -78,6 +78,28 @@ Write-Host
 # Call the Get-ReservedVMInstances module
 $ReservedVMInstances = Get-ReservedVMInstanceFamilies
 
+Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure Log Analytics Workspaces"
+$LogAnalyticsWorkspaces = Search-AzGraph -First 5000 -Query "
+extend WorkspaceSubscriptionId = tostring(split(id,'/',2)[0])
+| extend WorkspaceResourceGroupName = tostring(split(id,'/',4)[0])
+| extend WorkspaceSku = tostring(properties.sku.name)
+| extend WorkspaceRetentionInDays = tostring(properties.retentionInDays)
+| extend WorkspaceDailyQuotaGb = tostring(properties.workspaceCapping.dailyQuotaGb)
+| extend WorkspaceId = tostring(properties.customerId)
+| extend WorkspaceName = tostring(name)
+| where type =~ 'microsoft.operationalinsights/workspaces'
+| project WorkspaceSubscriptionId, WorkspaceResourceGroupName, WorkspaceName, WorkspaceId, WorkspaceSku, WorkspaceRetentionInDays, WorkspaceDailyQuotaGb
+"
+
+$WorkspaceSubscriptions = $AllSubscriptions `
+| Select-Object -Property `
+@{label = "WorkspaceSubscriptionId"; expression = { $_.Id } }, `
+@{label = "WorkspaceSubscriptionName"; expression = { $_.Name } }
+
+$LogAnalyticsWorkspaces = Join-Object -Left $LogAnalyticsWorkspaces -Right $WorkspaceSubscriptions -LeftJoinProperty WorkspaceSubscriptionId -RightJoinProperty WorkspaceSubscriptionId -Type AllInLeft -RightProperties WorkspaceSubscriptionName
+
+Write-Host
+
 # Loop through each Subscription
 foreach ($Subscription in $SelectedSubscriptions)
 {
@@ -99,35 +121,50 @@ foreach ($Subscription in $SelectedSubscriptions)
 
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of ARM Virtual Machines in Subscription: $($Subscription.Name)"
     $VMObjects = Search-AzGraph -Subscription $Subscription.Id -First 5000 -Query "
-    where type =~ 'microsoft.compute/virtualmachines'
+    extend ResourceId = id
+    | extend ResourceGroup = toupper(resourceGroup)
+    | extend VMName = toupper(name)
+    | extend VMLocation = location
+    | extend AvailabilitySet = toupper(split(properties.availabilitySet.id,'/',8)[0])
+    | extend VMSize = properties.hardwareProfile.vmSize
+    | extend ProvisioningState = properties.provisioningState
+    | extend OSDiskType = iif(isnotnull(properties.storageProfile.osDisk.managedDisk),'Managed','Unmanged')
+    | extend OSDiskStorageAccount = toupper(split(split(split(properties.storageProfile.osDisk.vhd.uri,'//',1)[0],'/',0)[0],'.',0)[0])
+    | extend OSDiskSize = properties.storageProfile.osDisk.diskSizeGB
+    | extend OSDiskCaching = properties.storageProfile.osDisk.caching
+    | extend OSDiskStorageType = properties.storageProfile.osDisk.managedDisk.storageAccountType
+    | extend DataDiskCount = array_length(properties.storageProfile.dataDisks)
+    | extend OSType = properties.storageProfile.osDisk.osType
+    | extend WindowsHybridBenefit = iif(properties.licenseType =~ 'Windows_Server','Enabled',iif(properties.storageProfile.osDisk.osType =~ 'Windows','Not Enabled','Not Supported'))
+    | extend OSDiskCreateOption = properties.storageProfile.osDisk.createOption
+    | extend ImagePublisher = properties.storageProfile.imageReference.publisher
+    | extend ImageOffer = properties.storageProfile.imageReference.offer
+    | extend ImageSku = properties.storageProfile.imageReference.sku
+    | extend ImageVersion = properties.storageProfile.imageReference.version
+    | extend NetworkInterface0 = toupper(split(properties.networkProfile.networkInterfaces[0].id,'/',8)[0])
+    | extend NetworkInterface1 = toupper(split(properties.networkProfile.networkInterfaces[1].id,'/',8)[0])
+    | extend NetworkInterface2 = toupper(split(properties.networkProfile.networkInterfaces[2].id,'/',8)[0])
+    | extend NetworkInterface3 = toupper(split(properties.networkProfile.networkInterfaces[3].id,'/',8)[0])
+    | extend BootDiagnostcsEnabled = iif(isnotnull(properties.diagnosticsProfile.bootDiagnostics),properties.diagnosticsProfile.bootDiagnostics.enabled,'False')
+    | extend BootDiagnostcsStorageAccount = toupper(split(split(split(properties.diagnosticsProfile.bootDiagnostics.storageUri,'//',1)[0],'/',0)[0],'.',0)[0])
+    | where type =~ 'microsoft.compute/virtualmachines'
     | order by id asc
-    | project
-    ResourceId = id,
-    ResourceGroup = toupper(resourceGroup),
-    VMName = toupper(name),
-    VMLocation = location,
-    AvailabilitySet = toupper(split(properties.availabilitySet.id,'/',8)[0]),
-    VMSize = properties.hardwareProfile.vmSize,
-    ProvisioningState = properties.provisioningState,
-    OSDiskType = iif(isnotnull(properties.storageProfile.osDisk.managedDisk),'Managed','Unmanged'),
-    OSDiskStorageAccount = toupper(split(split(split(properties.storageProfile.osDisk.vhd.uri,'//',1)[0],'/',0)[0],'.',0)[0]),
-    OSDiskSize = properties.storageProfile.osDisk.diskSizeGB,
-    OSDiskCaching = properties.storageProfile.osDisk.caching,
-    OSDiskStorageType = properties.storageProfile.osDisk.managedDisk.storageAccountType,
-    DataDiskCount = array_length(properties.storageProfile.dataDisks),
-    OSType = properties.storageProfile.osDisk.osType,
-    WindowsHybridBenefit = iif(properties.licenseType =~ 'Windows_Server','Enabled',iif(properties.storageProfile.osDisk.osType =~ 'Windows','Not Enabled','Not Supported')),
-    OSDiskCreateOption = properties.storageProfile.osDisk.createOption,
-    ImagePublisher = properties.storageProfile.imageReference.publisher,
-    ImageOffer = properties.storageProfile.imageReference.offer,
-    ImageSku = properties.storageProfile.imageReference.sku,
-    ImageVersion = properties.storageProfile.imageReference.version,
-    NetworkInterface0 = toupper(split(properties.networkProfile.networkInterfaces[0].id,'/',8)[0]),
-    NetworkInterface1 = toupper(split(properties.networkProfile.networkInterfaces[1].id,'/',8)[0]),
-    NetworkInterface2 = toupper(split(properties.networkProfile.networkInterfaces[2].id,'/',8)[0]),
-    NetworkInterface3 = toupper(split(properties.networkProfile.networkInterfaces[3].id,'/',8)[0]),
-    BootDiagnostcsEnabled = iif(isnotnull(properties.diagnosticsProfile.bootDiagnostics),properties.diagnosticsProfile.bootDiagnostics.enabled,'False'),
-    BootDiagnostcsStorageAccount = toupper(split(split(split(properties.diagnosticsProfile.bootDiagnostics.storageUri,'//',1)[0],'/',0)[0],'.',0)[0])
+    | project ResourceId,ResourceGroup,VMName,VMLocation,AvailabilitySet,VMSize,ProvisioningState,OSDiskType,OSDiskStorageAccount,OSDiskSize,OSDiskCaching,OSDiskStorageType,DataDiskCount,OSType,WindowsHybridBenefit,OSDiskCreateOption,ImagePublisher,ImageOffer,ImageSku,ImageVersion,NetworkInterface0,NetworkInterface1,NetworkInterface2,NetworkInterface3,BootDiagnostcsEnabled,BootDiagnostcsStorageAccount
+    "
+    Write-Host
+
+    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Virtual Machines Monioring Extensions in Subscription: $($Subscription.Name)"
+    $VMMonitoringExtensions = Search-AzGraph -Subscription $Subscription.Id -First 5000 -Query "
+    extend ResourceGroup = toupper(tostring(split(id,'/',4)[0]))
+    | extend VMName = toupper(tostring(split(id,'/',8)[0]))
+    | extend ExtensionPublisher = tostring(properties.publisher)
+    | extend ExtensionType = tostring(properties.type)
+    | extend ExtensionVersion = tostring(properties.typeHandlerVersion)
+    | extend ExtensionProvisioningState = tostring(properties.provisioningState)
+    | extend WorkspaceId = tostring(properties.settings.workspaceId)
+    | where type =~ 'microsoft.compute/virtualmachines/extensions'
+    | where ExtensionPublisher =~ 'Microsoft.EnterpriseCloud.Monitoring'
+    | project ResourceGroup, VMName, ExtensionPublisher, ExtensionType, ExtensionVersion, ExtensionProvisioningState, WorkspaceId
     "
     Write-Host
 
@@ -140,6 +177,16 @@ foreach ($Subscription in $SelectedSubscriptions)
         $VMObjects = Join-Object -Left $VMObjects -Right $ReservedVMInstances -LeftJoinProperty VMSize -RightJoinProperty VMSize -Type AllInLeft -RightProperties ReservedInstanceFamily, ReservedInstanceRatio
 
         $VMObjects = Join-Object -Left $VMObjects -Right $VMRestProperties -LeftJoinProperty ResourceId -RightJoinProperty id -Type AllInLeft -RightProperties createdTime, changedTime
+
+        if ($VMMonitoringExtensions)
+        {
+            $VMObjects = Join-Object -Left $VMObjects -Right $VMMonitoringExtensions -LeftJoinProperty VMName -RightJoinProperty VMName -Type AllInLeft -RightProperties WorkspaceId, ExtensionProvisioningState
+        }
+
+        if ($LogAnalyticsWorkspaces)
+        {
+            $VMObjects = Join-Object -Left $VMObjects -Right $LogAnalyticsWorkspaces -LeftJoinProperty WorkspaceId -RightJoinProperty WorkspaceId -Type AllInLeft -RightProperties WorkspaceSubscriptionName, WorkspaceResourceGroupName, WorkspaceName
+        }
 
         $OrderedVMObjects = $VMObjects `
         | Select-Object -Property `
@@ -177,11 +224,15 @@ foreach ($Subscription in $SelectedSubscriptions)
         @{label = "Network Interface 0"; expression = { $_.NetworkInterface0 } }, `
         @{label = "Network Interface 1"; expression = { $_.NetworkInterface1 } }, `
         @{label = "Network Interface 2"; expression = { $_.NetworkInterface2 } }, `
-        @{label = "Network Interface 3"; expression = { $_.NetworkInterface3 } }
+        @{label = "Network Interface 3"; expression = { $_.NetworkInterface3 } },
+        @{label = "Log Analytics Subscription"; expression = { $_.WorkspaceSubscriptionName } },
+        @{label = "Log Analytics Resource Group"; expression = { $_.WorkspaceResourceGroupName } },
+        @{label = "Log Analytics Workspace"; expression = { $_.WorkspaceName } },
+        @{label = "Log Analytics Agent Status"; expression = { $_.ExtensionProvisioningState } }
 
         # Output to a CSV file on the user's Desktop
         Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Appending details of ARM Virtual Machines to file."
-        $FilePath = "$env:HOMEDRIVE$env:HOMEPATH\Desktop\Azure Resource Graph VM Status $($DateTime).csv"
+        $FilePath = "$env:HOMEDRIVE$env:HOMEPATH\Desktop\Azure VM Status $($DateTime).csv"
         if ($OrderedVMObjects)
         {
             $OrderedVMObjects | Export-Csv -Path $FilePath -Append -NoTypeInformation
