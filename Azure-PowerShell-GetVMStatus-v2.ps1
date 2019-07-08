@@ -185,7 +185,7 @@ foreach ($Subscription in $SelectedSubscriptions)
 
         if ($LogAnalyticsWorkspaces)
         {
-            $VMObjects = Join-Object -Left $VMObjects -Right $LogAnalyticsWorkspaces -LeftJoinProperty WorkspaceId -RightJoinProperty WorkspaceId -Type AllInLeft -RightProperties WorkspaceSubscriptionName, WorkspaceResourceGroupName, WorkspaceName
+            $VMObjects = Join-Object -Left $VMObjects -Right $LogAnalyticsWorkspaces -LeftJoinProperty WorkspaceId -RightJoinProperty WorkspaceId -Type AllInLeft -RightProperties WorkspaceSubscriptionName, WorkspaceResourceGroupName, WorkspaceName, WorkspaceSku, WorkspaceRetentionInDays
         }
 
         $OrderedVMObjects = $VMObjects `
@@ -228,7 +228,9 @@ foreach ($Subscription in $SelectedSubscriptions)
         @{label = "Log Analytics Subscription"; expression = { $_.WorkspaceSubscriptionName } },
         @{label = "Log Analytics Resource Group"; expression = { $_.WorkspaceResourceGroupName } },
         @{label = "Log Analytics Workspace"; expression = { $_.WorkspaceName } },
-        @{label = "Log Analytics Agent Status"; expression = { $_.ExtensionProvisioningState } }
+        @{label = "Log Analytics Workspace SKU"; expression = { $_.WorkspaceSku } },
+        @{label = "Log Analytics Workspace Retention (Days)"; expression = { $_.WorkspaceRetentionInDays } },
+        @{label = "Log Analytics VM Agent Status"; expression = { $_.ExtensionProvisioningState } }
 
         # Output to a CSV file on the user's Desktop
         Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Appending details of ARM Virtual Machines to file."
