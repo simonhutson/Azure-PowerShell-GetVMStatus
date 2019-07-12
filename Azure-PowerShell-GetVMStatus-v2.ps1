@@ -147,9 +147,13 @@ foreach ($Subscription in $SelectedSubscriptions)
     | extend NetworkInterface3 = toupper(split(properties.networkProfile.networkInterfaces[3].id,'/',8)[0])
     | extend BootDiagnostcsEnabled = iif(isnotnull(properties.diagnosticsProfile.bootDiagnostics),properties.diagnosticsProfile.bootDiagnostics.enabled,'False')
     | extend BootDiagnostcsStorageAccount = toupper(split(split(split(properties.diagnosticsProfile.bootDiagnostics.storageUri,'//',1)[0],'/',0)[0],'.',0)[0])
+    | extend TagEnvironment = tostring(tags.Environment)
+    | extend TagServiceTicketRequestID = tostring(tags.['Service Ticket Request ID'])
+    | extend TagServiceOwner = tostring(tags.['Service Owner'])
+    | extend TagServiceName = tostring(tags.['Service Name'])
     | where type =~ 'microsoft.compute/virtualmachines'
     | order by id asc
-    | project ResourceId,ResourceGroup,VMName,VMLocation,AvailabilitySet,VMSize,ProvisioningState,OSDiskType,OSDiskStorageAccount,OSDiskSize,OSDiskCaching,OSDiskStorageType,DataDiskCount,OSType,WindowsHybridBenefit,OSDiskCreateOption,ImagePublisher,ImageOffer,ImageSku,ImageVersion,NetworkInterface0,NetworkInterface1,NetworkInterface2,NetworkInterface3,BootDiagnostcsEnabled,BootDiagnostcsStorageAccount
+    | project ResourceId,ResourceGroup,VMName,VMLocation,AvailabilitySet,VMSize,ProvisioningState,OSDiskType,OSDiskStorageAccount,OSDiskSize,OSDiskCaching,OSDiskStorageType,DataDiskCount,OSType,WindowsHybridBenefit,OSDiskCreateOption,ImagePublisher,ImageOffer,ImageSku,ImageVersion,NetworkInterface0,NetworkInterface1,NetworkInterface2,NetworkInterface3,BootDiagnostcsEnabled,BootDiagnostcsStorageAccount,TagEnvironment,TagServiceTicketRequestID,TagServiceOwner,TagServiceName
     "
     Write-Host
 
@@ -190,24 +194,14 @@ foreach ($Subscription in $SelectedSubscriptions)
 
         $OrderedVMObjects = $VMObjects `
         | Select-Object -Property `
-        @{label = "Created On"; expression = { if ($_.createdTime) { $([DateTime]::Parse($_.createdTime)).ToUniversalTime() } } }, `
-        @{label = "Modified On"; expression = { if ($_.changedTime) { $([DateTime]::Parse($_.createdTime)).ToUniversalTime() } } }, `
-        @{label = "Subscription"; expression = { $($Subscription.name) } }, `
+        @{label = "Name"; expression = { $_.VMName } }, `
         @{label = "Resource Group"; expression = { $_.ResourceGroup } }, `
-        @{label = "VM Name"; expression = { $_.VMName } }, `
-        @{label = "VM Location"; expression = { $_.VMLocation } }, `
-        @{label = "VM Size"; expression = { $_.VMSize } }, `
-        @{label = "VM Processor Cores"; expression = { $_.NumberOfCores } }, `
-        @{label = "VM Memory (GB)"; expression = { $([Math]::Round([INT]$_.MemoryInMB / 1024)) } }, `
-        @{label = "VM Reserved Instance Family"; expression = { $_.ReservedInstanceFamily } }, `
-        @{label = "VM Reserved Instance Ratio"; expression = { $_.ReservedInstanceRatio } }, `
+        @{label = "Subscription"; expression = { $($Subscription.name) } }, `
+        @{label = "Location"; expression = { $_.VMLocation } }, `
         @{label = "Availability Set"; expression = { $_.AvailabilitySet } }, `
-        @{label = "Power State"; expression = { $_.PowerState } }, `
-        @{label = "Provisioning State"; expression = { $_.ProvisioningState } }, `
-        @{label = "Status Code"; expression = { $_.StatusCode } }, `
-        @{label = "Maintenance - Self Service Window"; expression = { if ($_.MaintenanceRedeployStatus.IsCustomerInitiatedMaintenanceAllowed) { $($_.MaintenanceRedeployStatus.PreMaintenanceWindowStartTime).ToUniversalTime().ToString() + " - " + $($_.MaintenanceRedeployStatus.PreMaintenanceWindowEndTime).ToUniversalTime().ToString() + " UTC" } } }, `
-        @{label = "Maintenance - Scheduled Window"; expression = { if ($_.MaintenanceRedeployStatus.IsCustomerInitiatedMaintenanceAllowed) { $($_.MaintenanceRedeployStatus.MaintenanceWindowStartTime).ToUniversalTime().ToString() + " - " + $($_.MaintenanceRedeployStatus.MaintenanceWindowEndTime).ToUniversalTime().ToString() + " UTC" } } }, `
-        @{label = "Boot Diagnostics Enabled"; expression = { $_.BootDiagnostcsEnabled } }, `
+        @{label = "Size"; expression = { $_.VMSize } }, `
+        @{label = "Processor Cores"; expression = { $_.NumberOfCores } }, `
+        @{label = "Memory (GB)"; expression = { $([Math]::Round([INT]$_.MemoryInMB / 1024)) } }, `
         @{label = "OS Type"; expression = { $_.OSType } }, `
         @{label = "Windows Hybrid Benefit"; expression = { $_.WindowsHybridBenefit } }, `
         @{label = "Image Publisher"; expression = { $_.ImagePublisher } }, `
@@ -224,13 +218,27 @@ foreach ($Subscription in $SelectedSubscriptions)
         @{label = "Network Interface 0"; expression = { $_.NetworkInterface0 } }, `
         @{label = "Network Interface 1"; expression = { $_.NetworkInterface1 } }, `
         @{label = "Network Interface 2"; expression = { $_.NetworkInterface2 } }, `
-        @{label = "Network Interface 3"; expression = { $_.NetworkInterface3 } },
-        @{label = "Log Analytics Subscription"; expression = { $_.WorkspaceSubscriptionName } },
-        @{label = "Log Analytics Resource Group"; expression = { $_.WorkspaceResourceGroupName } },
-        @{label = "Log Analytics Workspace"; expression = { $_.WorkspaceName } },
-        @{label = "Log Analytics Workspace SKU"; expression = { $_.WorkspaceSku } },
-        @{label = "Log Analytics Workspace Retention (Days)"; expression = { $_.WorkspaceRetentionInDays } },
-        @{label = "Log Analytics VM Agent Status"; expression = { $_.ExtensionProvisioningState } }
+        @{label = "Network Interface 3"; expression = { $_.NetworkInterface3 } }, `
+        @{label = "Boot Diagnostics Enabled"; expression = { $_.BootDiagnostcsEnabled } }, `
+        @{label = "Log Analytics Subscription"; expression = { $_.WorkspaceSubscriptionName } }, `
+        @{label = "Log Analytics Resource Group"; expression = { $_.WorkspaceResourceGroupName } }, `
+        @{label = "Log Analytics Workspace"; expression = { $_.WorkspaceName } }, `
+        @{label = "Log Analytics Workspace SKU"; expression = { $_.WorkspaceSku } }, `
+        @{label = "Log Analytics Workspace Retention (Days)"; expression = { $_.WorkspaceRetentionInDays } }, `
+        @{label = "Log Analytics VM Agent Status"; expression = { $_.ExtensionProvisioningState } }, `
+        @{label = "Reserved Instance Family"; expression = { $_.ReservedInstanceFamily } }, `
+        @{label = "Reserved Instance Ratio"; expression = { $_.ReservedInstanceRatio } }, `
+        @{label = "Tag (Environment)"; expression = { $_.TagEnvironment } }, `
+        @{label = "Tag (Service Ticket Request ID)"; expression = { $_.TagServiceTicketRequestID } }, `
+        @{label = "Tag (Service Owner)"; expression = { $_.TagServiceOwner } }, `
+        @{label = "Tag (Service Name)"; expression = { $_.TagServiceName } }, `
+        @{label = "Created On"; expression = { if ($_.createdTime) { $([DateTime]::Parse($_.createdTime)).ToUniversalTime() } } }, `
+        @{label = "Modified On"; expression = { if ($_.changedTime) { $([DateTime]::Parse($_.createdTime)).ToUniversalTime() } } }, `
+        @{label = "Power State"; expression = { $_.PowerState } }, `
+        @{label = "Provisioning State"; expression = { $_.ProvisioningState } }, `
+        @{label = "Status Code"; expression = { $_.StatusCode } }, `
+        @{label = "Maintenance - Self Service Window"; expression = { if ($_.MaintenanceRedeployStatus.IsCustomerInitiatedMaintenanceAllowed) { $($_.MaintenanceRedeployStatus.PreMaintenanceWindowStartTime).ToUniversalTime().ToString() + " - " + $($_.MaintenanceRedeployStatus.PreMaintenanceWindowEndTime).ToUniversalTime().ToString() + " UTC" } } }, `
+        @{label = "Maintenance - Scheduled Window"; expression = { if ($_.MaintenanceRedeployStatus.IsCustomerInitiatedMaintenanceAllowed) { $($_.MaintenanceRedeployStatus.MaintenanceWindowStartTime).ToUniversalTime().ToString() + " - " + $($_.MaintenanceRedeployStatus.MaintenanceWindowEndTime).ToUniversalTime().ToString() + " UTC" } } }
 
         # Output to a CSV file on the user's Desktop
         Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Appending details of ARM Virtual Machines to file."
