@@ -172,6 +172,17 @@ foreach ($Subscription in $SelectedSubscriptions)
     "
     Write-Host
 
+    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Network Interfaces in Subscription: $($Subscription.Name)"
+    $NetworkInterfaces = Search-AzGraph -Subscription $Subscription.Id -First 5000 -Query "
+    extend NetworkInterface = toupper(name)
+    | extend NetworkInterfaceEnableAcceleratedNetworking = tolower(properties.enableAcceleratedNetworking)
+    | extend NetworkInterfacePrimary = tolower(iif(isnotnull(properties.primary),properties.primary,false))
+    | where type =~ 'microsoft.network/networkinterfaces'
+    "
+    Write-Host
+
+
+
     if ($VMObjects)
     {
         $VMObjects = Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, ProvisioningState, StatusCode, MaitenanceRedeployStatus
@@ -181,6 +192,14 @@ foreach ($Subscription in $SelectedSubscriptions)
         $VMObjects = Join-Object -Left $VMObjects -Right $ReservedVMInstances -LeftJoinProperty VMSize -RightJoinProperty VMSize -Type AllInLeft -RightProperties ReservedInstanceFamily, ReservedInstanceRatio
 
         $VMObjects = Join-Object -Left $VMObjects -Right $VMRestProperties -LeftJoinProperty ResourceId -RightJoinProperty id -Type AllInLeft -RightProperties createdTime, changedTime
+
+        if ($NetworkInterfaces)
+        {
+            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface0 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface0EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface0Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface1 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface1EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface1Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface2 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface2EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface2Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface3 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface3EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface3Primary"; Expression = { $_.NetworkInterfacePrimary } }
+        }
 
         if ($VMMonitoringExtensions)
         {
@@ -216,9 +235,17 @@ foreach ($Subscription in $SelectedSubscriptions)
         @{label = "Data Disk Count"; expression = { $_.DataDiskCount } }, `
         @{label = "Data Disk Max Count"; expression = { $_.MaxDataDiskCount } }, `
         @{label = "Network Interface 0"; expression = { $_.NetworkInterface0 } }, `
+        @{label = "Network Interface 0 Accelerated Networking"; expression = { $_.NetworkInterface0EnableAcceleratedNetworking } }, `
+        @{label = "Network Interface 0 Primary"; expression = { $_.NetworkInterface0Primary } }, `
         @{label = "Network Interface 1"; expression = { $_.NetworkInterface1 } }, `
+        @{label = "Network Interface 1 Accelerated Networking"; expression = { $_.NetworkInterface1EnableAcceleratedNetworking } }, `
+        @{label = "Network Interface 1 Primary"; expression = { $_.NetworkInterface1Primary } }, `
         @{label = "Network Interface 2"; expression = { $_.NetworkInterface2 } }, `
+        @{label = "Network Interface 2 Accelerated Networking"; expression = { $_.NetworkInterface2EnableAcceleratedNetworking } }, `
+        @{label = "Network Interface 2 Primary"; expression = { $_.NetworkInterface2Primary } }, `
         @{label = "Network Interface 3"; expression = { $_.NetworkInterface3 } }, `
+        @{label = "Network Interface 3 Accelerated Networking"; expression = { $_.NetworkInterface3EnableAcceleratedNetworking } }, `
+        @{label = "Network Interface 3 Primary"; expression = { $_.NetworkInterface3Primary } }, `
         @{label = "Boot Diagnostics Enabled"; expression = { $_.BootDiagnostcsEnabled } }, `
         @{label = "Log Analytics Subscription"; expression = { $_.WorkspaceSubscriptionName } }, `
         @{label = "Log Analytics Resource Group"; expression = { $_.WorkspaceResourceGroupName } }, `
