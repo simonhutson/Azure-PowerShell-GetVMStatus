@@ -6,7 +6,7 @@ Make sure you have the correct version of PowerShell 5.x installed, by running t
 $PSVersionTable.PSVersion
 ```
 
-If the "Az" and "Az.ResourceGraph" PowerShell modules are not installed, then you can run these PowerShell commands in an eleveated shell:
+If the "Az" and "Az.ResourceGraph" PowerShell modules are not installed, then you can run these PowerShell commands in an elevated shell:
 
 ```powershell
 Install-Module -Name "Az" -Repository "PSGallery" -Scope "CurrentUser" -SkipPublisherCheck -Force -Confirm -AllowClobber -Verbose
