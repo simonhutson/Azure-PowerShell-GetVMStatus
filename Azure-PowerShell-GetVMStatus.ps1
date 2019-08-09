@@ -120,6 +120,7 @@ foreach ($Subscription in $SelectedSubscriptions)
     $VMRestProperties = Invoke-RestMethod -Method "Get" -Headers $Headers -Uri "https://management.azure.com/subscriptions/$($Subscription.Id)/resources?`$filter=resourcetype eq 'Microsoft.Compute/virtualMachines'&`$expand=createdTime,changedTime&api-version=2018-08-01" | Select-Object -ExpandProperty value
     Write-Host
 
+    # Retrieve full details of all the ARM VMs in the current Subscription
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of ARM Virtual Machines in Subscription: $($Subscription.Name)"
     $VMObjects = Search-AzGraph -Subscription $Subscription.Id -First 5000 -Query "
     extend ResourceId = id
@@ -158,18 +159,48 @@ foreach ($Subscription in $SelectedSubscriptions)
     "
     Write-Host
 
+    # Retrieve full details of all the ARM SQL VMs in the current Subscription
+    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of ARM SQL Virtual Machines in Subscription: $($Subscription.Name)"
+    $SQLVMObjects = Search-AzGraph -Subscription $Subscription.Id -First 5000 -Query "
+    extend ResourceId = id
+    | extend ResourceGroup = toupper(tostring(split(id,'/',4)[0]))
+    | extend VMName = toupper(tostring(split(id,'/',8)[0]))
+    | extend SqlServerLicenseType = tostring(properties.sqlServerLicenseType)
+    | extend SqlManagement = tostring(properties.sqlManagement)
+    | extend SqlImageOffer = tostring(properties.sqlImageOffer)
+    | extend SqlImageSku = tostring(properties.sqlImageSku)
+    | where type =~ 'microsoft.sqlvirtualmachine/sqlvirtualmachines'
+    | project ResourceId, ResourceGroup, VMName, location, SqlServerLicenseType, SqlManagement, SqlImageOffer, SqlImageSku
+    "
+    Write-Host
+
+
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Virtual Machines Monioring Extensions in Subscription: $($Subscription.Name)"
     $VMMonitoringExtensions = Search-AzGraph -Subscription $Subscription.Id -First 5000 -Query "
     extend ResourceGroup = toupper(tostring(split(id,'/',4)[0]))
     | extend VMName = toupper(tostring(split(id,'/',8)[0]))
-    | extend ExtensionPublisher = tostring(properties.publisher)
-    | extend ExtensionType = tostring(properties.type)
-    | extend ExtensionVersion = tostring(properties.typeHandlerVersion)
-    | extend ExtensionProvisioningState = tostring(properties.provisioningState)
+    | extend VMMonitoringExtensionPublisher = tostring(properties.publisher)
+    | extend VMMonitoringExtensionType = tostring(properties.type)
+    | extend VMMonitoringExtensionVersion = tostring(properties.typeHandlerVersion)
+    | extend VMMonitoringExtensionProvisioningState = tostring(properties.provisioningState)
     | extend WorkspaceId = tostring(properties.settings.workspaceId)
     | where type =~ 'microsoft.compute/virtualmachines/extensions'
-    | where ExtensionPublisher =~ 'Microsoft.EnterpriseCloud.Monitoring'
-    | project ResourceGroup, VMName, ExtensionPublisher, ExtensionType, ExtensionVersion, ExtensionProvisioningState, WorkspaceId
+    | where VMMonitoringExtensionPublisher =~ 'Microsoft.EnterpriseCloud.Monitoring'
+    | project ResourceGroup, VMName, VMMonitoringExtensionPublisher, VMMonitoringExtensionType, VMMonitoringExtensionVersion, VMMonitoringExtensionProvisioningState, WorkspaceId
+    "
+    Write-Host
+
+    Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of SQL Server IaaS Agent Extensions in Subscription: $($Subscription.Name)"
+    $SQLServerIaaSExtensions = Search-AzGraph -Subscription $Subscription.Id -First 5000 -Query "
+    extend ResourceGroup = toupper(tostring(split(id,'/',4)[0]))
+    | extend VMName = toupper(tostring(split(id,'/',8)[0]))
+    | extend SQLServerIaaSExtensionPublisher = tostring(properties.publisher)
+    | extend SQLServerIaaSExtensionType = tostring(properties.type)
+    | extend SQLServerIaaSExtensionVersion = tostring(properties.typeHandlerVersion)
+    | extend SQLServerIaaSExtensionProvisioningState = tostring(properties.provisioningState)
+    | where type =~ 'microsoft.compute/virtualmachines/extensions'
+    | where SQLServerIaaSExtensionPublisher =~ 'Microsoft.SqlServer.Management'
+    | project ResourceGroup, VMName, SQLServerIaaSExtensionPublisher, SQLServerIaaSExtensionType, SQLServerIaaSExtensionVersion, SQLServerIaaSExtensionProvisioningState
     "
     Write-Host
 
@@ -194,6 +225,11 @@ foreach ($Subscription in $SelectedSubscriptions)
 
         $VMObjects = Join-Object -Left $VMObjects -Right $VMRestProperties -LeftJoinProperty ResourceId -RightJoinProperty id -Type AllInLeft -RightProperties createdTime, changedTime
 
+        if ($SQLVMObjects)
+        {
+            $VMObjects = Join-Object -Left $VMObjects -Right $SQLVMObjects -LeftJoinProperty VMName -RightJoinProperty VMName -Type AllInLeft -RightProperties SqlServerLicenseType, SqlManagement
+        }
+
         if ($NetworkInterfaces)
         {
             $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface0 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface0EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface0Primary"; Expression = { $_.NetworkInterfacePrimary } }
@@ -204,7 +240,12 @@ foreach ($Subscription in $SelectedSubscriptions)
 
         if ($VMMonitoringExtensions)
         {
-            $VMObjects = Join-Object -Left $VMObjects -Right $VMMonitoringExtensions -LeftJoinProperty VMName -RightJoinProperty VMName -Type AllInLeft -RightProperties WorkspaceId, ExtensionProvisioningState
+            $VMObjects = Join-Object -Left $VMObjects -Right $VMMonitoringExtensions -LeftJoinProperty VMName -RightJoinProperty VMName -Type AllInLeft -RightProperties WorkspaceId, VMMonitoringExtensionVersion , VMMonitoringExtensionProvisioningState
+        }
+
+        if ($SQLServerIaaSExtensions)
+        {
+            $VMObjects = Join-Object -Left $VMObjects -Right $SQLServerIaaSExtensions -LeftJoinProperty VMName -RightJoinProperty VMName -Type AllInLeft -RightProperties SQLServerIaaSExtensionVersion, SQLServerIaaSExtensionProvisioningState
         }
 
         if ($LogAnalyticsWorkspaces)
@@ -228,6 +269,10 @@ foreach ($Subscription in $SelectedSubscriptions)
         @{label = "Image Offer"; expression = { $_.ImageOffer } }, `
         @{label = "Image Sku"; expression = { $_.ImageSku } }, `
         @{label = "Image Version"; expression = { $_.ImageVersion } }, `
+        @{label = "SQL Server Licence Type"; expression = { $_.SqlServerLicenseType } }, `
+        @{label = "SQL Server"; expression = { $_.SqlManagement } }, `
+        @{label = "SQL Server IaaS Extension Version"; expression = { $_.SQLServerIaaSExtensionVersion } }, `
+        @{label = "SQL Server IaaS Extension Provisioning State"; expression = { $_.SQLServerIaaSExtensionProvisioningState } }, `
         @{label = "OS Disk Size"; expression = { $_.OSDiskSize } }, `
         @{label = "OS Disk Caching"; expression = { $_.OSDiskCaching } }, `
         @{label = "OS Disk Type"; expression = { $_.OSDiskType } }, `
@@ -253,7 +298,8 @@ foreach ($Subscription in $SelectedSubscriptions)
         @{label = "Log Analytics Workspace"; expression = { $_.WorkspaceName } }, `
         @{label = "Log Analytics Workspace SKU"; expression = { $_.WorkspaceSku } }, `
         @{label = "Log Analytics Workspace Retention (Days)"; expression = { $_.WorkspaceRetentionInDays } }, `
-        @{label = "Log Analytics VM Agent Status"; expression = { $_.ExtensionProvisioningState } }, `
+        @{label = "VM Monitoring Extension Version"; expression = { $_.VMMonitoringExtensionVersion } }, `
+        @{label = "VM Monitoring Extension Status"; expression = { $_.VMMonitoringExtensionProvisioningState } }, `
         @{label = "Reserved Instance Family"; expression = { $_.ReservedInstanceFamily } }, `
         @{label = "Reserved Instance Ratio"; expression = { $_.ReservedInstanceRatio } }, `
         @{label = "Tag (Environment)"; expression = { $_.TagEnvironment } }, `
