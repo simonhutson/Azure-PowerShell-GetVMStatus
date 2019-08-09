@@ -270,7 +270,7 @@ foreach ($Subscription in $SelectedSubscriptions)
         @{label = "Image Sku"; expression = { $_.ImageSku } }, `
         @{label = "Image Version"; expression = { $_.ImageVersion } }, `
         @{label = "SQL Server Licence Type"; expression = { $_.SqlServerLicenseType } }, `
-        @{label = "SQL Server"; expression = { $_.SqlManagement } }, `
+        @{label = "SQL Server Management Level"; expression = { $_.SqlManagement } }, `
         @{label = "SQL Server IaaS Extension Version"; expression = { $_.SQLServerIaaSExtensionVersion } }, `
         @{label = "SQL Server IaaS Extension Provisioning State"; expression = { $_.SQLServerIaaSExtensionProvisioningState } }, `
         @{label = "OS Disk Size"; expression = { $_.OSDiskSize } }, `
