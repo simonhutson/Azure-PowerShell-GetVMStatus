@@ -220,41 +220,55 @@ foreach ($Subscription in $SelectedSubscriptions)
 
     if ($VMObjects)
     {
+        Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMStatuses in Subscription: $($Subscription.Name)"
         $VMObjects = Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, ProvisioningState, StatusCode, MaitenanceRedeployStatus
 
+        Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMSizes in Subscription: $($Subscription.Name)"
         $VMObjects = Join-Object -Left $VMObjects -Right $VMSizes -LeftJoinProperty VMSize -RightJoinProperty Name -Type AllInLeft -RightProperties NumberOfCores, MemoryInMB, MaxDataDiskCount
 
+        Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining ReservedVMInstances in Subscription: $($Subscription.Name)"
         $VMObjects = Join-Object -Left $VMObjects -Right $ReservedVMInstances -LeftJoinProperty VMSize -RightJoinProperty VMSize -Type AllInLeft -RightProperties ReservedInstanceFamily, ReservedInstanceRatio
 
+        Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMRestProperties in Subscription: $($Subscription.Name)"
         $VMObjects = Join-Object -Left $VMObjects -Right $VMRestProperties -LeftJoinProperty ResourceId -RightJoinProperty id -Type AllInLeft -RightProperties createdTime, changedTime
 
         if ($SQLVMObjects)
         {
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining SQLVMObjects in Subscription: $($Subscription.Name)"
             $VMObjects = Join-Object -Left $VMObjects -Right $SQLVMObjects -LeftJoinProperty VMName -RightJoinProperty VMName -Type AllInLeft -RightProperties SqlServerLicenseType, SqlManagement
         }
 
         if ($NetworkInterfaces)
         {
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining NetworkInterfaces0 in Subscription: $($Subscription.Name)"
             $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface0 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface0EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface0Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining NetworkInterfaces1 in Subscription: $($Subscription.Name)"
             $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface1 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface1EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface1Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining NetworkInterfaces2 in Subscription: $($Subscription.Name)"
             $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface2 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface2EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface2Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining NetworkInterfaces3 in Subscription: $($Subscription.Name)"
             $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface3 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface3EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface3Primary"; Expression = { $_.NetworkInterfacePrimary } }
         }
 
         if ($VMMonitoringExtensions)
         {
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMMonitoringExtensions in Subscription: $($Subscription.Name)"
             $VMObjects = Join-Object -Left $VMObjects -Right $VMMonitoringExtensions -LeftJoinProperty VMName -RightJoinProperty VMName -Type AllInLeft -RightProperties WorkspaceId, VMMonitoringExtensionVersion , VMMonitoringExtensionProvisioningState
         }
 
         if ($SQLServerIaaSExtensions)
         {
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining SQLServerIaaSExtensions in Subscription: $($Subscription.Name)"
             $VMObjects = Join-Object -Left $VMObjects -Right $SQLServerIaaSExtensions -LeftJoinProperty VMName -RightJoinProperty VMName -Type AllInLeft -RightProperties SQLServerIaaSExtensionVersion, SQLServerIaaSExtensionProvisioningState
         }
 
         if ($LogAnalyticsWorkspaces)
         {
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining LogAnalyticsWorkspaces in Subscription: $($Subscription.Name)"
             $VMObjects = Join-Object -Left $VMObjects -Right $LogAnalyticsWorkspaces -LeftJoinProperty WorkspaceId -RightJoinProperty WorkspaceId -Type AllInLeft -RightProperties WorkspaceSubscriptionName, WorkspaceResourceGroupName, WorkspaceName, WorkspaceSku, WorkspaceRetentionInDays
         }
+
+        Write-Host
 
         $OrderedVMObjects = $VMObjects `
         | Select-Object -Property `
