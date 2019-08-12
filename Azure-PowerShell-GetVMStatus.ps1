@@ -97,7 +97,10 @@ $WorkspaceSubscriptions = $AllSubscriptions `
 @{label = "WorkspaceSubscriptionId"; expression = { $_.Id } }, `
 @{label = "WorkspaceSubscriptionName"; expression = { $_.Name } }
 
-$LogAnalyticsWorkspaces = Join-Object -Left $LogAnalyticsWorkspaces -Right $WorkspaceSubscriptions -LeftJoinProperty WorkspaceSubscriptionId -RightJoinProperty WorkspaceSubscriptionId -Type AllInLeft -RightProperties WorkspaceSubscriptionName
+if ($LogAnalyticsWorkspaces)
+{
+    $LogAnalyticsWorkspaces = Join-Object -Left $LogAnalyticsWorkspaces -Right $WorkspaceSubscriptions -LeftJoinProperty WorkspaceSubscriptionId -RightJoinProperty WorkspaceSubscriptionId -Type AllInLeft -RightProperties WorkspaceSubscriptionName
+}
 
 Write-Host
 
