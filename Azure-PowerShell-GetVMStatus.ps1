@@ -30,11 +30,6 @@ $DateTime = Get-Date -f 'yyyy-MM-dd HHmmss'
 # Call Login-Azure module
 $Account = Login-Azure
 
-# Get Authentication Access Token, for use with the Azure REST API
-$TokenCache = (Get-AzContext).TokenCache
-$Token = $TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $Account.Context.Tenant.Id -and $_.DisplayableId -eq $Account.Context.Account.Id -and $_.Resource -eq "https://management.core.windows.net/" }
-$AccessToken = "Bearer " + $Token.AccessToken
-
 # Get list of Subscriptions associated with this Azure AD Tenant, for which this User has access
 Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving list of Azure Subscriptions for this Azure AD Tenant"
 $AllSubscriptions = @(Get-AzSubscription -TenantId $Account.Context.Tenant.Id)
@@ -116,6 +111,11 @@ foreach ($Subscription in $SelectedSubscriptions)
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving status of ARM Virtual Machines in Subscription: $($Subscription.Name)"
     $VMStatuses = Get-AzVM -Status
     Write-Host
+
+    # Get Authentication Access Token, for use with the Azure REST API
+    $TokenCache = (Get-AzContext).TokenCache
+    $Token = $TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $Account.Context.Tenant.Id -and $_.DisplayableId -eq $Account.Context.Account.Id -and $_.Resource -eq "https://management.core.windows.net/" }
+    $AccessToken = "Bearer " + $Token.AccessToken
 
     # Get the created & last updated date/time of all the ARM VMs in the current Subscription by calling the Azure REST API
     Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Retrieving created & last updated date/time of ARM Virtual Machines in Subscription: $($Subscription.Name)"
