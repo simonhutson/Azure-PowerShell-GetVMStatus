@@ -221,7 +221,7 @@ foreach ($Subscription in $SelectedSubscriptions)
     if ($VMObjects)
     {
         Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMStatuses in Subscription: $($Subscription.Name)"
-        $VMObjects = Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, ProvisioningState, StatusCode, MaitenanceRedeployStatus
+        $VMObjects = Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, StatusCode, MaintenanceRedeployStatus
 
         Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMSizes in Subscription: $($Subscription.Name)"
         $VMObjects = Join-Object -Left $VMObjects -Right $VMSizes -LeftJoinProperty VMSize -RightJoinProperty Name -Type AllInLeft -RightProperties NumberOfCores, MemoryInMB, MaxDataDiskCount
