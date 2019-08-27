@@ -212,6 +212,10 @@ foreach ($Subscription in $SelectedSubscriptions)
     extend NetworkInterface = toupper(name)
     | extend NetworkInterfaceEnableAcceleratedNetworking = tolower(properties.enableAcceleratedNetworking)
     | extend NetworkInterfacePrimary = tolower(iif(isnotnull(properties.primary),properties.primary,false))
+    | extend NetworkInterfacePrivateIpAddress0 = tostring(properties.ipConfigurations[0].properties.privateIPAddress)
+    | extend NetworkInterfacePrivateIpAddress1 = tostring(properties.ipConfigurations[1].properties.privateIPAddress)
+    | extend NetworkInterfacePrivateIpAddress2 = tostring(properties.ipConfigurations[2].properties.privateIPAddress)
+    | extend NetworkInterfacePrivateIpAddress3 = tostring(properties.ipConfigurations[3].properties.privateIPAddress)
     | where type =~ 'microsoft.network/networkinterfaces'
     "
     Write-Host
@@ -220,17 +224,29 @@ foreach ($Subscription in $SelectedSubscriptions)
 
     if ($VMObjects)
     {
-        Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMStatuses in Subscription: $($Subscription.Name)"
-        $VMObjects = Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, StatusCode, MaintenanceRedeployStatus
+        if ($VMStatuses)
+        {
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMStatuses in Subscription: $($Subscription.Name)"
+            $VMObjects = Join-Object -Left $VMObjects -Right $VMStatuses -LeftJoinProperty ResourceId -RightJoinProperty Id -Type AllInLeft -RightProperties PowerState, StatusCode, MaintenanceRedeployStatus
+        }
 
-        Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMSizes in Subscription: $($Subscription.Name)"
-        $VMObjects = Join-Object -Left $VMObjects -Right $VMSizes -LeftJoinProperty VMSize -RightJoinProperty Name -Type AllInLeft -RightProperties NumberOfCores, MemoryInMB, MaxDataDiskCount
+        if ($VMSizes)
+        {
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMSizes in Subscription: $($Subscription.Name)"
+            $VMObjects = Join-Object -Left $VMObjects -Right $VMSizes -LeftJoinProperty VMSize -RightJoinProperty Name -Type AllInLeft -RightProperties NumberOfCores, MemoryInMB, MaxDataDiskCount
+        }
 
-        Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining ReservedVMInstances in Subscription: $($Subscription.Name)"
-        $VMObjects = Join-Object -Left $VMObjects -Right $ReservedVMInstances -LeftJoinProperty VMSize -RightJoinProperty VMSize -Type AllInLeft -RightProperties ReservedInstanceFamily, ReservedInstanceRatio
+        if ($ReservedVMInstances)
+        {
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining ReservedVMInstances in Subscription: $($Subscription.Name)"
+            $VMObjects = Join-Object -Left $VMObjects -Right $ReservedVMInstances -LeftJoinProperty VMSize -RightJoinProperty VMSize -Type AllInLeft -RightProperties ReservedInstanceFamily, ReservedInstanceRatio
+        }
 
-        Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMRestProperties in Subscription: $($Subscription.Name)"
-        $VMObjects = Join-Object -Left $VMObjects -Right $VMRestProperties -LeftJoinProperty ResourceId -RightJoinProperty id -Type AllInLeft -RightProperties createdTime, changedTime
+        if ($VMRestProperties)
+        {
+            Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining VMRestProperties in Subscription: $($Subscription.Name)"
+            $VMObjects = Join-Object -Left $VMObjects -Right $VMRestProperties -LeftJoinProperty ResourceId -RightJoinProperty id -Type AllInLeft -RightProperties createdTime, changedTime
+        }
 
         if ($SQLVMObjects)
         {
@@ -241,13 +257,13 @@ foreach ($Subscription in $SelectedSubscriptions)
         if ($NetworkInterfaces)
         {
             Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining NetworkInterfaces0 in Subscription: $($Subscription.Name)"
-            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface0 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface0EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface0Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface0 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface0EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface0Primary"; Expression = { $_.NetworkInterfacePrimary } }, @{Name = "NetworkInterface0PrivateIAddress0"; Expression = { $_.NetworkInterfacePrivateIpAddress0 } }, @{Name = "NetworkInterface0PrivateIAddress1"; Expression = { $_.NetworkInterfacePrivateIpAddress1 } }, @{Name = "NetworkInterface0PrivateIAddress2"; Expression = { $_.NetworkInterfacePrivateIpAddress2 } }, @{Name = "NetworkInterface0PrivateIAddress3"; Expression = { $_.NetworkInterfacePrivateIpAddress3 } }
             Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining NetworkInterfaces1 in Subscription: $($Subscription.Name)"
-            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface1 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface1EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface1Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface1 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface1EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface1Primary"; Expression = { $_.NetworkInterfacePrimary } }, @{Name = "NetworkInterface1PrivateIAddress0"; Expression = { $_.NetworkInterfacePrivateIpAddress0 } }, @{Name = "NetworkInterface1PrivateIAddress1"; Expression = { $_.NetworkInterfacePrivateIpAddress1 } }, @{Name = "NetworkInterface1PrivateIAddress2"; Expression = { $_.NetworkInterfacePrivateIpAddress2 } }, @{Name = "NetworkInterface1PrivateIAddress3"; Expression = { $_.NetworkInterfacePrivateIpAddress3 } }
             Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining NetworkInterfaces2 in Subscription: $($Subscription.Name)"
-            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface2 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface2EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface2Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface2 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface2EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface2Primary"; Expression = { $_.NetworkInterfacePrimary } }, @{Name = "NetworkInterface2PrivateIAddress0"; Expression = { $_.NetworkInterfacePrivateIpAddress0 } }, @{Name = "NetworkInterface2PrivateIAddress1"; Expression = { $_.NetworkInterfacePrivateIpAddress1 } }, @{Name = "NetworkInterface2PrivateIAddress2"; Expression = { $_.NetworkInterfacePrivateIpAddress2 } }, @{Name = "NetworkInterface2PrivateIAddress3"; Expression = { $_.NetworkInterfacePrivateIpAddress3 } }
             Write-Host -BackgroundColor Yellow -ForegroundColor DarkBlue "Joining NetworkInterfaces3 in Subscription: $($Subscription.Name)"
-            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface3 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface3EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface3Primary"; Expression = { $_.NetworkInterfacePrimary } }
+            $VMObjects = Join-Object -Left $VMObjects -Right $NetworkInterfaces -LeftJoinProperty NetworkInterface3 -RightJoinProperty NetworkInterface -Type AllInLeft -RightProperties @{Name = "NetworkInterface3EnableAcceleratedNetworking"; Expression = { $_.NetworkInterfaceEnableAcceleratedNetworking } }, @{Name = "NetworkInterface3Primary"; Expression = { $_.NetworkInterfacePrimary } }, @{Name = "NetworkInterface3PrivateIAddress0"; Expression = { $_.NetworkInterfacePrivateIpAddress0 } }, @{Name = "NetworkInterface3PrivateIAddress1"; Expression = { $_.NetworkInterfacePrivateIpAddress1 } }, @{Name = "NetworkInterface3PrivateIAddress2"; Expression = { $_.NetworkInterfacePrivateIpAddress2 } }, @{Name = "NetworkInterface3PrivateIAddress3"; Expression = { $_.NetworkInterfacePrivateIpAddress3 } }
         }
 
         if ($VMMonitoringExtensions)
@@ -300,15 +316,31 @@ foreach ($Subscription in $SelectedSubscriptions)
         @{label = "Network Interface 0"; expression = { $_.NetworkInterface0 } }, `
         @{label = "Network Interface 0 Accelerated Networking"; expression = { $_.NetworkInterface0EnableAcceleratedNetworking } }, `
         @{label = "Network Interface 0 Primary"; expression = { $_.NetworkInterface0Primary } }, `
+        @{label = "Network Interface 0 Private IP Address 0"; expression = { $_.NetworkInterface0PrivateIAddress0 } }, `
+        @{label = "Network Interface 0 Private IP Address 1"; expression = { $_.NetworkInterface0PrivateIAddress1 } }, `
+        @{label = "Network Interface 0 Private IP Address 2"; expression = { $_.NetworkInterface0PrivateIAddress2 } }, `
+        @{label = "Network Interface 0 Private IP Address 3"; expression = { $_.NetworkInterface0PrivateIAddress3 } }, `
         @{label = "Network Interface 1"; expression = { $_.NetworkInterface1 } }, `
         @{label = "Network Interface 1 Accelerated Networking"; expression = { $_.NetworkInterface1EnableAcceleratedNetworking } }, `
         @{label = "Network Interface 1 Primary"; expression = { $_.NetworkInterface1Primary } }, `
+        @{label = "Network Interface 1 Private IP Address 0"; expression = { $_.NetworkInterface1PrivateIAddress0 } }, `
+        @{label = "Network Interface 1 Private IP Address 1"; expression = { $_.NetworkInterface1PrivateIAddress1 } }, `
+        @{label = "Network Interface 1 Private IP Address 2"; expression = { $_.NetworkInterface1PrivateIAddress2 } }, `
+        @{label = "Network Interface 1 Private IP Address 3"; expression = { $_.NetworkInterface1PrivateIAddress3 } }, `
         @{label = "Network Interface 2"; expression = { $_.NetworkInterface2 } }, `
         @{label = "Network Interface 2 Accelerated Networking"; expression = { $_.NetworkInterface2EnableAcceleratedNetworking } }, `
         @{label = "Network Interface 2 Primary"; expression = { $_.NetworkInterface2Primary } }, `
+        @{label = "Network Interface 2 Private IP Address 0"; expression = { $_.NetworkInterface2PrivateIAddress0 } }, `
+        @{label = "Network Interface 2 Private IP Address 1"; expression = { $_.NetworkInterface2PrivateIAddress1 } }, `
+        @{label = "Network Interface 2 Private IP Address 2"; expression = { $_.NetworkInterface2PrivateIAddress2 } }, `
+        @{label = "Network Interface 2 Private IP Address 3"; expression = { $_.NetworkInterface2PrivateIAddress3 } }, `
         @{label = "Network Interface 3"; expression = { $_.NetworkInterface3 } }, `
         @{label = "Network Interface 3 Accelerated Networking"; expression = { $_.NetworkInterface3EnableAcceleratedNetworking } }, `
         @{label = "Network Interface 3 Primary"; expression = { $_.NetworkInterface3Primary } }, `
+        @{label = "Network Interface 3 Private IP Address 0"; expression = { $_.NetworkInterface3PrivateIAddress0 } }, `
+        @{label = "Network Interface 3 Private IP Address 1"; expression = { $_.NetworkInterface3PrivateIAddress1 } }, `
+        @{label = "Network Interface 3 Private IP Address 2"; expression = { $_.NetworkInterface3PrivateIAddress2 } }, `
+        @{label = "Network Interface 3 Private IP Address 3"; expression = { $_.NetworkInterface3PrivateIAddress3 } }, `
         @{label = "Boot Diagnostics Enabled"; expression = { $_.BootDiagnostcsEnabled } }, `
         @{label = "Log Analytics Subscription"; expression = { $_.WorkspaceSubscriptionName } }, `
         @{label = "Log Analytics Resource Group"; expression = { $_.WorkspaceResourceGroupName } }, `
