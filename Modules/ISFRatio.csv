@@ -1,0 +1,188 @@
+InstanceSizeFlexibilityGroup,ArmSkuName,Ratio
+BS Series,Standard_B1ls,1
+BS Series,Standard_B1s,2
+BS Series,Standard_B2s,8
+BS Series High Memory,Standard_B1ms,1
+BS Series High Memory,Standard_B2ms,4
+BS Series High Memory,Standard_B4ms,8
+BS Series High Memory,Standard_B8ms,16
+BS Series High Memory,Standard_B12ms,24
+BS Series High Memory,Standard_B16ms,32
+BS Series High Memory,Standard_B20ms,40
+D Series,Standard_D1,1
+D Series,Standard_D2,2
+D Series,Standard_D3,4
+D Series,Standard_D4,8
+D Series High Memory,Standard_D11,1
+D Series High Memory,Standard_D12,2
+D Series High Memory,Standard_D13,4
+D Series High Memory,Standard_D14,8
+DS Series,Standard_DS1,1
+DS Series,Standard_DS2,2
+DS Series,Standard_DS3,4
+DS Series,Standard_DS4,8
+DS Series High Memory,Standard_DS11,1
+DS Series High Memory,Standard_DS12,2
+DS Series High Memory,Standard_DS13,4
+DS Series High Memory,Standard_DS14,8
+DSv2 Series,Standard_DS1_v2,1
+DSv2 Series,Standard_DS2_v2,2
+DSv2 Series,Standard_DS3_v2,4
+DSv2 Series,Standard_DS4_v2,8
+DSv2 Series,Standard_DS5_v2,16
+DSv2 Series High Memory,Standard_DS11-1_v2,1
+DSv2 Series High Memory,Standard_DS11_v2,1
+DSv2 Series High Memory,Standard_DS12-2_v2,2
+DSv2 Series High Memory,Standard_DS12-1_v2,2
+DSv2 Series High Memory,Standard_DS12_v2,2
+DSv2 Series High Memory,Standard_DS13-2_v2,4
+DSv2 Series High Memory,Standard_DS13-4_v2,4
+DSv2 Series High Memory,Standard_DS13_v2,4
+DSv2 Series High Memory,Standard_DS14-4_v2,8
+DSv2 Series High Memory,Standard_DS14-8_v2,8
+DSv2 Series High Memory,Standard_DS14_v2,8
+DSv2 Series High Memory,Standard_DS15_v2,10
+DSv2 Series High Memory Isolated,Standard_DS15i_v2,1
+DSv3 Series,Standard_D2s_v3,1
+DSv3 Series,Standard_D4s_v3,2
+DSv3 Series,Standard_D8s_v3,4
+DSv3 Series,Standard_D16s_v3,8
+DSv3 Series,Standard_D32s_v3,16
+DSv3 Series,Standard_D48s_v3,24
+DSv3 Series,Standard_D64s_v3,32
+Dv2 Series,Standard_D1_v2,1
+Dv2 Series,Standard_D2_v2,2
+Dv2 Series,Standard_D3_v2,4
+Dv2 Series,Standard_D4_v2,8
+Dv2 Series,Standard_D5_v2,16
+Dv2 Series High Memory,Standard_D11_v2,1
+Dv2 Series High Memory,Standard_D12_v2,2
+Dv2 Series High Memory,Standard_D13_v2,4
+Dv2 Series High Memory,Standard_D14_v2,8
+Dv2 Series High Memory,Standard_D15_v2,10
+Dv2 Series High Memory Isolated,Standard_D15i_v2,1
+Dv3 Series,Standard_D2_v3,1
+Dv3 Series,Standard_D4_v3,2
+Dv3 Series,Standard_D8_v3,4
+Dv3 Series,Standard_D16_v3,8
+Dv3 Series,Standard_D32_v3,16
+Dv3 Series,Standard_D48_v3,24
+Dv3 Series,Standard_D64_v3,32
+ESv3 Series,Standard_E2s_v3,1
+ESv3 Series,Standard_E4s_v3,2
+ESv3 Series,Standard_E4-2s_v3,2
+ESv3 Series,Standard_E8s_v3,4
+ESv3 Series,Standard_E8-4s_v3,4
+ESv3 Series,Standard_E8-2s_v3,4
+ESv3 Series,Standard_E16-4s_v3,8
+ESv3 Series,Standard_E16s_v3,8
+ESv3 Series,Standard_E16-8s_v3,8
+ESv3 Series,Standard_E20s_v3,10
+ESv3 Series,Standard_E32s_v3,16
+ESv3 Series,Standard_E32-16s_v3,16
+ESv3 Series,Standard_E32-8s_v3,16
+ESv3 Series,Standard_E48s_v3,24
+ESv3 Series,Standard_E64s_v3,28.8
+ESv3 Series,Standard_E64-32s_v3,28.8
+ESv3 Series,Standard_E64-16s_v3,28.8
+ESv3 Series Isolated,Standard_E64is_v3,1
+Ev3 Series,Standard_E2_v3,1
+Ev3 Series,Standard_E4_v3,2
+Ev3 Series,Standard_E8_v3,4
+Ev3 Series,Standard_E16_v3,8
+Ev3 Series,Standard_E20_v3,10
+Ev3 Series,Standard_E32_v3,16
+Ev3 Series,Standard_E48_v3,24
+Ev3 Series,Standard_E64_v3,28.8
+Ev3 Series Isolated,Standard_E64i_v3,1
+F Series,Standard_F1,1
+F Series,Standard_F2,2
+F Series,Standard_F4,4
+F Series,Standard_F8,8
+F Series,Standard_F16,16
+FS Series,Standard_F1s,1
+FS Series,Standard_F2s,2
+FS Series,Standard_F4s,4
+FS Series,Standard_F8s,8
+FS Series,Standard_F16s,16
+FSv2 Series,Standard_F2s_v2,1
+FSv2 Series,Standard_F4s_v2,2
+FSv2 Series,Standard_F8s_v2,4
+FSv2 Series,Standard_F16s_v2,8
+FSv2 Series,Standard_F32s_v2,16
+FSv2 Series,Standard_F48s_v2,24
+FSv2 Series,Standard_F64s_v2,32
+FSv2 Series,Standard_F72s_v2,36
+H Series,Standard_H8,1
+H Series,Standard_H16,2
+H Series High Memory,Standard_H8m,1
+H Series High Memory,Standard_H16m,2
+H Series High Memory Low Latency,Standard_H16mr,1
+H Series Low Latency,Standard_H16r,1
+HBS Series,Standard_HB60rs,1
+HCS Series,Standard_HC44rs,1
+LS Series,Standard_L4s,1
+LS Series,Standard_L8s,2
+LS Series,Standard_L16s,4
+LS Series,Standard_L32s,8
+LSv2 Series,Standard_L8s_v2,1
+LSv2 Series,Standard_L16s_v2,2
+LSv2 Series,Standard_L32s_v2,4
+LSv2 Series,Standard_L48s_v2,6
+LSv2 Series,Standard_L64s_v2,8
+LSv2 Series,Standard_L80s_v2,10
+LSv2 Series,Standard_L96s_v2,12
+MS Series,Standard_M64s,1
+MS Series,Standard_M64,1
+MS Series,Standard_M128s,2
+MS Series,Standard_M128,2
+MS Series Fractional,Standard_M16s,1
+MS Series Fractional,Standard_M32s,2
+MS Series Fractional High Memory,Standard_M8-4ms,1
+MS Series Fractional High Memory,Standard_M8-2ms,1
+MS Series Fractional High Memory,Standard_M8ms,1
+MS Series Fractional High Memory,Standard_M16-8ms,2
+MS Series Fractional High Memory,Standard_M16-4ms,2
+MS Series Fractional High Memory,Standard_M16ms,2
+MS Series Fractional High Memory,Standard_M32-16ms,4
+MS Series Fractional High Memory,Standard_M32-8ms,4
+MS Series Fractional High Memory,Standard_M32ms,4
+MS Series Fractional Large,Standard_M32ls,1
+MS Series Fractional Large,Standard_M64ls,1.8846875
+MS Series Fractional Tiny,Standard_M32ts,1
+MS Series High Memory,Standard_M64ms,1
+MS Series High Memory,Standard_M64m,1
+MS Series High Memory,Standard_M64-32ms,1
+MS Series High Memory,Standard_M64-16ms,1
+MS Series High Memory,Standard_M128m,2
+MS Series High Memory,Standard_M128-32ms,2
+MS Series High Memory,Standard_M128ms,2
+MS Series High Memory,Standard_M128-64ms,2
+MSv2 Series,Standard_M208s_v2,1
+MSv2 Series,Standard_M416s_v2,2
+MSv2 Series High Memory,Standard_M208ms_v2,1
+MSv2 Series High Memory,Standard_M416ms_v2,2
+NC Series,Standard_NC6,1
+NC Series,Standard_NC12,2
+NC Series,Standard_NC24,4
+NC Series Low Latency,Standard_NC24r,1
+NCSv2 Series,Standard_NC6s_v2,1
+NCSv2 Series,Standard_NC12s_v2,2
+NCSv2 Series,Standard_NC24s_v2,4
+NCSv2 Series Low Latency,Standard_NC24rs_v2,1
+NCSv3 Series,Standard_NC6s_v3,1
+NCSv3 Series,Standard_NC12s_v3,2
+NCSv3 Series,Standard_NC24s_v3,4
+NCSv3 Series Low Latency,Standard_NC24rs_v3,1
+NDS Series,Standard_ND6s,1
+NDS Series,Standard_ND12s,2
+NDS Series,Standard_ND24s,4
+NDS Series Low Latency,Standard_ND24rs,1
+NV Series,Standard_NV6,1
+NV Series,Standard_NV12,2
+NV Series,Standard_NV24,4
+NVSv3 Series,Standard_NV12s_v3,1
+NVSv3 Series,Standard_NV24s_v3,2
+NVSv3 Series,Standard_NV48s_v3,4
+NVSv3 Series High Memory,Standard_NV24ms_v3,1
+NVSv3 Series High Memory,Standard_NV32ms_v3,1.333333333
