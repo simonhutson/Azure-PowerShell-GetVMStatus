@@ -1,10 +1,10 @@
-﻿function Get-ReservedVMInstanceFamilies
+function Get-ReservedVMInstanceFamilies
 {
 
     <#
 
     .SYNOPSIS
-    Create a PowerShell object based on the VM Size Fleibility information at https://docs.microsoft.com/azure/virtual-machines/windows/reserved-vm-instance-size-flexibility
+    Create a PowerShell object based on the VM Size Flexibility information at https://docs.microsoft.com/azure/virtual-machines/windows/reserved-vm-instance-size-flexibility
 
     #>
 
@@ -14,10 +14,15 @@
     )
     Begin
     {
+        $url = "https://isfratio.blob.core.windows.net/isfratio/ISFRatio.csv"
+        Invoke-WebRequest -Uri $url -OutFile ".\Modules\ISFRatio.csv"
+        $InstanceSizeFlexibilityRatio = Import-Csv -Path ".\Modules\ISFRatio.csv"
+
         $ReservedVMInstances = [PSCustomObject]@()
         # B-Series
-        $ReservedVMInstances += [PSCustomObject]@{"VMSize" = "Standard_B1s"; "ReservedInstanceFamily" = "B-Series"; "ReservedInstanceRatio" = "1" }
-        $ReservedVMInstances += [PSCustomObject]@{"VMSize" = "Standard_B2s"; "ReservedInstanceFamily" = "B-Series"; "ReservedInstanceRatio" = "4" }
+        $ReservedVMInstances += [PSCustomObject]@{"VMSize" = "Standard_B1ls"; "ReservedInstanceFamily" = "B-Series"; "ReservedInstanceRatio" = "1" }
+        $ReservedVMInstances += [PSCustomObject]@{"VMSize" = "Standard_B1s"; "ReservedInstanceFamily" = "B-Series"; "ReservedInstanceRatio" = "2" }
+        $ReservedVMInstances += [PSCustomObject]@{"VMSize" = "Standard_B2s"; "ReservedInstanceFamily" = "B-Series"; "ReservedInstanceRatio" = "8" }
         # B-Series High Memory
         $ReservedVMInstances += [PSCustomObject]@{"VMSize" = "Standard_B1ms"; "ReservedInstanceFamily" = "B-Series High Memory"; "ReservedInstanceRatio" = "1" }
         $ReservedVMInstances += [PSCustomObject]@{"VMSize" = "Standard_B2ms"; "ReservedInstanceFamily" = "B-Series High Memory"; "ReservedInstanceRatio" = "4" }
@@ -193,7 +198,8 @@
     }
     Process
     {
-        Write-Output -InputObject $ReservedVMInstances
+        #Write-Output -InputObject $ReservedVMInstances
+        Write-Output -InputObject $InstanceSizeFlexibilityRatio
     }
     End
     {
